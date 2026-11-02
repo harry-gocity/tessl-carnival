@@ -74,24 +74,33 @@ export function step(state: WhackAMoleState, dt: number, random: () => number = 
   state.bonks = state.bonks.filter((b) => b.age < 0.3);
   if (state.phase !== 'playing') return;
 
-  state.elapsed += dt;
-  if (state.elapsed >= ROUND_SECONDS) {
+  if (state.elapsed + dt >= ROUND_SECONDS) {
     state.elapsed = ROUND_SECONDS;
     for (const hole of state.holes) hole.upFor = 0;
     state.phase = 'over';
     return;
   }
 
-  for (const hole of state.holes) hole.upFor = Math.max(hole.upFor - dt, 0);
-
-  state.nextMole -= dt;
-  if (state.nextMole <= 0) {
+  // Split the step at every mole that falls due inside it, so a big step
+  // plays out the same as many small ones.
+  let left = dt;
+  while (state.nextMole <= left) {
+    const wait = state.nextMole;
+    advance(state, wait);
+    left -= wait;
     const empty = state.holes.filter((h) => h.upFor === 0);
     if (empty.length > 0) {
       empty[Math.floor(random() * empty.length)].upFor = upTime(state.elapsed);
     }
-    state.nextMole += popInterval(state.elapsed);
+    state.nextMole = popInterval(state.elapsed);
   }
+  advance(state, left);
+  state.nextMole -= left;
+}
+
+function advance(state: WhackAMoleState, dt: number) {
+  state.elapsed += dt;
+  for (const hole of state.holes) hole.upFor = Math.max(hole.upFor - dt, 0);
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: WhackAMoleState) {

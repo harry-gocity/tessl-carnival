@@ -27,6 +27,18 @@ describe('whack-a-mole', () => {
     expect(state.holes.filter((h) => h.upFor > 0)).toHaveLength(1);
   });
 
+  it('plays out a big step the same as many small ones', () => {
+    const big = createState();
+    step(big, 2.4, () => 0);
+    const small = createState();
+    for (let i = 0; i < 48; i++) step(small, 0.05, () => 0);
+    expect(big.elapsed).toBeCloseTo(small.elapsed);
+    expect(big.nextMole).toBeCloseTo(small.nextMole);
+    expect(big.nextMole).toBeGreaterThan(0);
+    expect(big.holes.map((h) => h.upFor)).toEqual(small.holes.map((h) => expect.closeTo(h.upFor)));
+    expect(big.holes.filter((h) => h.upFor > 0)).toHaveLength(2);
+  });
+
   it('drops a mole back down when its time is up', () => {
     const state = createState();
     state.nextMole = 100;
